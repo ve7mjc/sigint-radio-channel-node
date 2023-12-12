@@ -1,0 +1,13 @@
+{
+    "python.pythonPath": "venv/bin/python",
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/.git": true,
+    //   "**/venv": true
+    },
+    "files.trimTrailingWhitespace": true
+    // "files.associations": {
+    //     "*.yaml": "home-assistant"
+    // } <-- what was this anyways?
+}
+

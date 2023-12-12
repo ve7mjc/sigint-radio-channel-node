@@ -1,0 +1,11 @@
+__pycache__
+logs
+venv
+
+*.cfg
+*.yaml
+*.conf
+
+RTLSDR-Airband/
+
+
