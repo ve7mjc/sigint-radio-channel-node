@@ -1,5 +1,6 @@
 from dataclasses import is_dataclass, fields, MISSING
 from typing import TypeVar, Type, Any, get_args, get_origin, Union, Optional
+import os
 
 DataclassType = TypeVar("DataclassType")
 
@@ -60,3 +61,9 @@ def from_dict(dataclass_type: Type[DataclassType], dictionary: dict[str, Any]) -
         field_values[name] = value
 
     return dataclass_type(**field_values)
+
+
+def filename_from_path(file_path: str) -> str:
+    base_name = os.path.basename(file_path)
+    filename, _ = os.path.splitext(base_name)
+    return filename

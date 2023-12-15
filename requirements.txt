@@ -6,3 +6,6 @@ Jinja2
 
 pymumble
 resampy
+
+# libsamplerate wrapper
+samplerate

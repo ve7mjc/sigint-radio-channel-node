@@ -13,8 +13,11 @@ import yaml
 @dataclass
 class SdrDeviceConfig:
     type: str
-    serial: str
+    device_string: Optional[str] = None
+    serial: Optional[str] = None
     gain: Optional[float] = None
+    correction: Optional[float] = None
+    overrides: list[str] = field(default=list)
 
 
 @dataclass
@@ -28,8 +31,11 @@ class RadioVoiceChannelConfig:
     id: str
     freq: float
     mumble: MumbleChannelConfig
+    mode: Optional[str] = "nfm"
     label: Optional[str] = None
     ctcss: Optional[float] = None
+    udp_port: Optional[int] = None
+    overrides: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -42,6 +48,9 @@ class MumbleConfig:
 class AppConfig:
     data_store: str
     mumble: MumbleConfig
+    config_out_filename: Optional[str] = None
+    global_tau: Optional[int] = None
+    global_overrides: list[str] = field(default_factory=list)
     devices: list[SdrDeviceConfig] = field(default_factory=list)
     channels: list[RadioVoiceChannelConfig] = field(default_factory=list)
 
@@ -59,11 +68,11 @@ def load_yaml_config(filename: str = DEFAULT_CONFIG_FILE) -> AppConfig:
     return config
 
 
-def get_config():
+def get_config(filename: str):
     global _config
     if _config:
         return _config
 
-    _config = load_yaml_config()
+    _config = load_yaml_config(filename)
 
     return _config

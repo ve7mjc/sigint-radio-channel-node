@@ -82,7 +82,7 @@ class MumbleChannel:
         pass  # Handle user creation
 
     def user_removed(self, user: str, message: str):
-        logger.debug(f"mumble: USER_REMOVED {user},{message}")
+        # logger.debug(f"mumble: USER_REMOVED {user},{message}")
         pass  # Handle user removal
 
 # Usage example

@@ -15,6 +15,7 @@ class RtlSdrAirbandChannel:
     modulation: str
     outputs: list[dict] = field(default_factory=list)
     ctcss: Optional[float] = None
+    overrides: list[str] = field(default_factory=list)
 
     def add_output_udp_stream(self, dest_address: str, dest_port: int):
         output = { "type": "\"udp_stream\"" }
@@ -28,6 +29,8 @@ class RtlSdrAirbandChannel:
 class RtlSdrAirbandDevice:
     type: str
     index: int = 0
+    device_string: Optional[str] = None
+    serial: Optional[str] = None
     gain: Optional[float] = None
     correction: Optional[float] = None
     centerfreq: Optional[float] = None
@@ -37,3 +40,5 @@ class RtlSdrAirbandDevice:
 @dataclass
 class RtlSdrAirbandConfig:
     devices: list[RtlSdrAirbandDevice] = field(default_factory=list)
+    global_tau: Optional[int] = None
+    global_overrides: list[str] = field(default_factory=list)

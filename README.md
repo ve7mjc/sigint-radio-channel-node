@@ -12,6 +12,13 @@ We could use it for "efficient" FFT channelizer and CTCSS detection? Could then 
 * "RAW" Complex stream could be demodulated, de-emphasized, filtered, etc.
 * The UDP audio signal could be passed further along
 
+
+
+
+
+---
+
+
 What can our framework do?
 
 * Filter out transmits with no voice content -- eg. many systems will come up and down with a "kerchunk"
