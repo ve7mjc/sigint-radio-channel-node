@@ -35,6 +35,66 @@ This will configure a Python venv (Virtual Environment) and obtain all of the re
 
 This will start the application with the supplied configuration file
 
+## Configuration
+
+### Devices
+
+- *type*: `rtlsdr_airband.(rtlsdr|soapysdr)`
+- *serial* (optional): string to pass to hardware layer for device selection
+- *index* (optional): integer to pass to hardware layer for device selection
+- *center_freq*: Optional; center frequency to tune SDR to; will be automatically calculated if omitted
+- *gain*: passed to rtl_airband
+
+### Channels
+
+- *id* (optional): provide an id for this channel which can be referenced elsewhere. Recommended.
+
+- *freq*: frequency of channel in MHz
+- *label*: string description of channel; used by Mumble, logging, etc
+- *designator*: string emission designator (FCC/IC type); examples:
+  - 6K00A3E AM (Carrier + Full Sidebands) eg. VHF Air Band
+  - 11K0F3E FM Narrow (2.5 KHz) eg. Commercial Land Mobile Radio, Public Safety
+  - 16K0F3E FM Wide (5.0 KHz) eg. Marine VHF, Amateur Radio FM VHF
+- *ctcss* (optional): `float` CTCSS frequency which will then squelch by rtl_airband and also notch filtered out
+
+### Example Config
+
+```yaml
+global_overrides:
+#   - "fft_size = 1024;"
+#   - "tau = 600;"
+
+listen_port_base: 6100
+
+mumble:
+  remote_host: mumble-server.example.com
+  remote_port: 3500
+  default_channel: Radio Channels
+
+devices:
+  - id: rtlsdr_34
+    type: rtlsdr_airband.rtlsdr
+    serial: "00000034"
+    gain: 28
+    center_freq: 119.365
+
+channels:
+  - id: cyvr-tower-south
+    freq: 118.700
+    label: Vancouver Tower (South)
+    designator: 6K00A3E
+
+  - id: cyvr-tower-north
+    freq: 119.550
+    label: Vancouver Tower (North)
+    designator: 6K00A3E
+
+  - id: cyyj-tower-outer
+    freq: 119.100
+    label: Victoria (CYYJ) Tower (Outer)
+    designator: 6K00A3E
+```
+
 ## RTLSDR-Airband Channel Listeners
 
 RTLSDR-Airband supports output via UDP packets. The output format is an 8,000 byte datagram with 32-bit float samples (2,000 samples) at 16,000 samples/sec. Each datagram contains 125 msec of audio. The datagrams appear to always be 8,000 bytes, with an amount of 0x00 byte padding.
