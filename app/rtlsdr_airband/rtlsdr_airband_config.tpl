@@ -4,7 +4,6 @@
 {% if global_tau %}
 tau = {{ global_tau }};
 {% endif %}
-
 {% for override in global_overrides %}
 {{ override }}
 {% endfor %}
@@ -31,8 +30,7 @@ devices: (
     channels: (
     {% for channel in device.channels %}
     {
-        name = "{{ channel.name }}";
-        freq = {{ channel.freq }};
+        freq = {{ '{:.3f}'.format(channel.freq) }};
         {% if channel.modulation %}
         modulation = "{{ channel.modulation }}";
         {% endif %}

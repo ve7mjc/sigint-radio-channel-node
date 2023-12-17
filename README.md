@@ -1,4 +1,23 @@
-Intercept Two-Way Radio Voice Communications --
+# SigInt Capture Node
+
+Manage the collection, processing, storage, and distribution of realtime two-way radio communication channels.
+
+## Concept of Operation
+
+
+
+## Features
+
+* Generate RTLSDR-Airband configuration and wrap/execute process based on config direc
+* Apply filter chains (notch, low-pass, high-pass, etc) to audio streams
+* Write timestamped voice traffic to disk (wave)
+* Reflect voice channels to Mumble in realtime
+
+## RTLSDR-Airband Channel Listeners
+
+RTLSDR-Airband supports output via UDP packets. The output format is an 8,000 byte datagram with 32-bit float samples (2,000 samples) at 16,000 samples/sec. Each datagram contains 125 msec of audio. The datagrams appear to always be 8,000 bytes, with an amount of 0x00 byte padding.
+
+
 
 RTLSDR-Airband is falling short in a few ways:
 

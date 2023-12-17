@@ -3,6 +3,8 @@ from .dsp.filters import iir_notch, iir_highpass
 from .dsp.radio_filters import remove_ctcss
 from .literals import DEFAULT_MINIMUM_VOICE_ACTIVE_SECS, SAMPLE_SECS_PER_FRAME
 from .mumble.channel import MumbleChannel
+from app.config import RadioChannelConfig
+from app.radio.channel import RadioChannel
 
 # experiment to test if we are getting jitter from the 8,000 byte frames..
 # 8k/4 = 2k samples
@@ -89,15 +91,20 @@ class FilterState:
     zi: Optional[ndarray] = None
 
 
-class UdpStreamProcessor:
+class RadioChannelProcessor:
+
+    config: RadioChannelConfig
+
+    channel: RadioChannel
 
     id: str
     listen_addr: str
     listen_port: int
+
     sample_rate_in: int
+
     stream_active: bool
     time_stream_started: Union[datetime, None]
-    ctcss_freq: Optional[float]
 
     data_output_path: str
 
@@ -114,19 +121,36 @@ class UdpStreamProcessor:
 
     mumble_resampler: Resampler
 
-    def __init__(self, id: str, listen_addr: str, listen_port: int,
+    output_gain: float
+
+    def __init__(self, config: RadioChannelConfig, listen_addr: str, listen_port: int,
                  sample_rate_in: int = 16000):
 
-        self.id = id
-        self.label = id
+        self.config = config
+
+        # set from config
+        self.id = config.id
+
+        # determine radio channel mode
+        self.channel = RadioChannel(config.freq)
+        if config.designator:
+            self.channel.set_emissions_designator(config.designator)
+
+        # if config.ctcss:
+        #     self.set_ctcss(config.ctcss)
+        if config.label:
+            self.set_label(config.label)
+        self.label = config.label
+
         self.listen_addr = listen_addr
         self.listen_port = listen_port
+
         self.sample_rate_in = sample_rate_in
+
         self.stream_active = False
         self.time_stream_started = None
 
         self.data_output_path = os.getcwd()
-        self.ctcss_freq = None
 
         self.receive_buffer = bytearray()
 
@@ -143,8 +167,10 @@ class UdpStreamProcessor:
         self.samples = Queue()
         self.filter_states = {}
 
-        logger.debug(f"{self.__class__.__name__}({listen_addr}, {listen_port}, {sample_rate_in})")
+        # default of unity gain on output
+        self.output_gain = 1.
 
+        # logger.debug(f"{self.__class__.__name__}({listen_addr}, {listen_port}, {sample_rate_in})")
 
 
     def add_mumble_output(self, remote_host: str, remote_port: int, **kwargs):
@@ -155,12 +181,12 @@ class UdpStreamProcessor:
             nyquist = 0.5 * self.sample_rate_in
 
             # Notch out CTCSS if present
-            if self.ctcss_freq:
-                logger.debug(f"adding notch filter for ctcss freq = {self.ctcss_freq}")
+            if self.channel.ctcss:
+                logger.debug(f"adding notch filter for ctcss freq = {self.channel.ctcss}")
                 bandwidth_hz = 20
-                q = self.ctcss_freq / bandwidth_hz
+                q = self.channel.ctcss / bandwidth_hz
                 # self.ctcss_freq / (self.sample_rate_in / 2)
-                b, a = iirnotch(self.ctcss_freq, q, self.sample_rate_in)
+                b, a = iirnotch(self.channel.ctcss, q, self.sample_rate_in)
                 self.filter_states['mumble_notch_ctcss'] = FilterState(b=b,a=a)
 
             # Highpass
@@ -197,9 +223,9 @@ class UdpStreamProcessor:
     def set_data_path(self, data_path: str):
         self.data_output_path = data_path
 
-    def set_ctcss(self, freq: float):
-        logger.debug(f"channel '{self.id}' enabling ctcss = {freq} Hz")
-        self.ctcss_freq = freq
+    # def set_ctcss(self, freq: float):
+    #     logger.debug(f"channel '{self.id}' enabling ctcss = {freq} Hz")
+    #     self.ctcss_freq = freq
 
     def _start_stream(self):
 
@@ -240,8 +266,8 @@ class UdpStreamProcessor:
             self._write_samples(samples, self.sample_rate_in)
 
             # remove ctcss if specified
-            if self.ctcss_freq:
-                samples = remove_ctcss(samples, self.sample_rate_in, self.ctcss_freq)
+            if self.channel.ctcss:
+                samples = remove_ctcss(samples, self.sample_rate_in, self.channel.ctcss)
                 self._write_samples(samples, self.sample_rate_in, "ctcss_removed")
 
             # apply 300 Hz high-pass
@@ -303,7 +329,7 @@ class UdpStreamProcessor:
             # elements = np.float32([self.samples.get() for _ in range(samples_per_frame)])
 
             # Notch CTCSS if present
-            if self.ctcss_freq:
+            if self.channel.ctcss:
                 fst: FilterState = self.filter_states['mumble_notch_ctcss']
                 if fst.zi is None:
                     fst.zi = np.zeros(max(len(fst.a), len(fst.b)) - 1)
@@ -332,7 +358,7 @@ class UdpStreamProcessor:
             #     fst.zi = np.zeros(max(len(fst.a), len(fst.b)) - 1)
             # resampled, fst.zi = lfilter(fst.b, fst.a, resampled, zi=fst.zi)
 
-            pcm_data = np.int16(resampled * 32767 * 4)
+            pcm_data = np.int16(resampled * 32767 * self.output_gain)
 
             # store samples for DiskWriting
             if self.mumble_debug_samples:

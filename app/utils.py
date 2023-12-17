@@ -1,29 +1,12 @@
 from dataclasses import is_dataclass, fields, MISSING
-from typing import TypeVar, Type, Any, get_args, get_origin, Union, Optional
+from typing import TypeVar, Type, Any, get_args, get_origin, Union
 import os
+import logging
+
 
 DataclassType = TypeVar("DataclassType")
 
-
-# def from_dict(dataclass_type: Type[DataclassType], dictionary: dict[str, Any]) -> DataclassType:
-#     field_values = {}
-#     for name, value in dictionary.items():
-#         field_type = dataclass_type.__annotations__.get(name, None)
-
-#         # Check if the field is a dataclass
-#         if field_type and is_dataclass(field_type):
-#             value = from_dict(field_type, value)
-
-#         # Check if the field is a list
-#         elif field_type and hasattr(field_type, '__origin__') and isinstance(field_type.__origin__, type) and issubclass(field_type.__origin__, list):
-#             element_type = field_type.__args__[0]
-#             if is_dataclass(element_type):
-#                 value = [from_dict(element_type, v) for v in value]
-
-#         field_values[name] = value
-
-#     return dataclass_type(**field_values)
-
+logger = logging.getLogger(__name__)
 
 
 def from_dict(dataclass_type: Type[DataclassType], dictionary: dict[str, Any]) -> DataclassType:
@@ -67,3 +50,38 @@ def filename_from_path(file_path: str) -> str:
     base_name = os.path.basename(file_path)
     filename, _ = os.path.splitext(base_name)
     return filename
+
+def channel_closest_center(channels: list[Union[int,float]]) -> Union[int,float]:
+    """
+    supports both int and float; returns the same as input
+    """
+    if len(channels) == 0:
+        return None
+    elif len(channels) == 1 or len(channels) == 2:
+        return channels[0]
+    else:
+        chan_max = max(channels)
+        chan_min = min(channels)
+        freq_center = chan_min + ((chan_max - chan_min) / 2)
+
+        # find channel with least distance from center
+        chan_least = None
+        dist_least = None
+        for channel in channels:
+            dist = abs(channel - freq_center)
+
+            if chan_least is None or dist < dist_least:
+                chan_least = channel
+                dist_least = dist
+
+    return chan_least
+
+def bandwidth_required(channel_frequencies: list[float],
+                       channel_width: int) -> int:
+
+        # frequencies are float mhz
+        freq_min_hz = int(min(channel_frequencies) * 1e6)
+        freq_max_hz = int(max(channel_frequencies) * 1e6)
+
+        return (freq_max_hz - freq_min_hz) + channel_width
+

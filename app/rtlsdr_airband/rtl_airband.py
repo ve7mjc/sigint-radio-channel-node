@@ -1,7 +1,10 @@
+from app.common.process import ProcessTask, ProcessEvent, ProcessEventType
+
 import os
 import asyncio
-from asyncio import StreamReader, Queue, Event
-from asyncio.subprocess import PIPE
+from asyncio import Queue, Event
+from typing import Optional
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,70 +15,85 @@ bin_paths: list[str] = [
 
 default_timeout_ready_secs: float = 5.
 
+PROCESS_READY_PATTERNS: list[str] = [
+    r"^Allocating [0-9]+ zero-copy buffers$"
+]
+
 class RtlSdrAirbandInstance:
 
+    id: str
+
     config_file: str
-    output_queue: Queue[str]
 
-    ready: bool
-
+    events: Queue[ProcessEvent]
     stop_requested: Event
-    ready_event: Event
-    done_event: Event
 
+    ready_timeout_secs: float
 
-    def __init__(self, config_file: str):
+    _tasks: list
+
+    process: ProcessTask
+
+    def __init__(self, config_file: str, id: Optional[str] = None):
+
         self.config_file = config_file
-        self.output_queue = Queue()
+        self.id = id
 
-        self.stop_requested = Event()
-        self.ready_event = Event()
-        self.done_event = Event()
-
+        self.ready_timeout_secs = default_timeout_ready_secs
         self.ready = False
 
-    async def _read_stream(self, stream: StreamReader, stderr: bool = False):
-        while not self.stop_requested.is_set():
-            line = await stream.readline()
-            if line:
-                line = line.decode().strip()
-                if not self.ready and "Allocating 10 zero-copy buffers" in line:
-                    self.ready_event.set()
-                    logger.debug("rtl_airband running!")
-                logger.debug("rtl_airband -> output: %s", line)
-                await self.output_queue.put(line)
-            else:
-                break
+        self.stop_requested = Event()
+        self.done_event = Event()
 
-    async def _process_output_task(self):
-        pass
+        self._tasks = []
+        self.events = Queue()
+
+        self.process = ProcessTask(ready_patterns=PROCESS_READY_PATTERNS,
+                                   ready_timeout=5)
+
+    # async def wait_for_ready(self):
+    #     await self.ready_event.wait()
+
+    # async def wait_for_process(self):
+    #     await self.process.wait()
 
     async def run(self):
 
         bin_path = os.path.join(bin_paths[0], "rtl_airband")
         command = [bin_path, '-F', '-c', self.config_file]
-        timeout_ready_secs = default_timeout_ready_secs
 
-        logger.debug(f"calling: {' '.join(command)}")
+        self._tasks.append(asyncio.create_task(self.process_output_task()))
 
-        process = await asyncio.create_subprocess_exec(
-                *command, stdout=PIPE, stderr=PIPE)
+        process_task = asyncio.create_task(
+                self.process.run(command), name="process_task")
 
         try:
-            await asyncio.gather(
-                self._read_stream(process.stdout, stderr=False),
-                self._read_stream(process.stderr, stderr=True),
-                self._process_output_task()
-            )
-            await process.wait()
+            timeout_ready_secs = default_timeout_ready_secs
 
-            # After the specific output is found, continue capturing output
-            # await asyncio.wait_for(process.wait(), timeout=timeout_ready_secs)
+            while not self.stop_requested.is_set():
+                event = await self.process.events.get()
+                await self.events.put(event)
 
+        except Exception as e:
+            logger.error(f"error type == {type(e)} {e}")
+            # await asyncio.wait_for(self.ready_event.wait(),
+            #                        timeout=timeout_ready_secs)
         except asyncio.TimeoutError:
-            logger.error("process timed out!")
-        finally:
-            process.kill()
-            await process.wait()
-            self.done_event.set()
-            logger.info("process ended")
+            logger.error("rtl_airband timed out")
+
+
+        # return_code = await self.process.wait()
+
+        self.done_event.set()
+
+    async def process_output_task(self):
+        while not self.stop_requested.is_set():
+            try:
+                pipe, line = await asyncio.wait_for(
+                        self.process.output.get(), timeout=0.01)
+                if pipe == "stderr":
+                    logger.error(f"ERROR output [{pipe}]: {line}")
+                else:
+                    logger.debug(f"ERROR output [{pipe}]: {line}")
+            except asyncio.TimeoutError:
+                pass
