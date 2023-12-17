@@ -52,9 +52,9 @@ This will start the application with the supplied configuration file
 - ***freq***: frequency of channel in MHz
 - ***label***: string description of channel; used by Mumble, logging, etc
 - ***designator***: string emission designator (FCC/IC type); examples:
-  - `6K00A3E` AM (Carrier + Full Sidebands) eg. VHF Air Band
-  - `11K0F3E` FM Narrow (2.5 KHz) eg. Commercial Land Mobile Radio, Public Safety
-  - `16K0F3E` FM Wide (5.0 KHz) eg. Marine VHF, Amateur Radio FM VHF
+  - `6K00A3E` AM (Double Side-band) - VHF Air Band
+  - `11K0F3E` FM Narrow (2.5 KHz) - Commercial Land Mobile Radio, Public Safety
+  - `16K0F3E` FM Wide (5.0 KHz) - Marine VHF, Amateur Radio FM VHF
 - ***ctcss*** (optional): `float` CTCSS frequency which will then squelch by rtl_airband and also notch filtered out
 
 ### Example Config
@@ -97,7 +97,7 @@ channels:
 
 ## RTLSDR-Airband Channel Listeners
 
-RTLSDR-Airband supports output via UDP packets. The output format is an 8,000 byte datagram with 32-bit float samples (2,000 samples) at 16,000 samples/sec. Each datagram contains 125 msec of audio. The datagrams appear to always be 8,000 bytes, with an amount of 0x00 byte padding.
+RTLSDR-Airband supports output via UDP packets. The output format is an 8,000 byte datagram with 32-bit float samples (2,000 samples) at 16,000 samples/sec. Each datagram contains 125 msec of audio. The datagrams appear to always be 8,000 bytes, with the final datagram being padded with 0x00 bytes.
 
 RTLSDR-Airband falls short in a few ways:
 

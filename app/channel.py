@@ -197,15 +197,15 @@ class RadioChannelProcessor:
             self.filter_states['mumble_high_pass'] = FilterState(b=b, a=a)
 
             # Lowpass
-            cutoff_frequency = 3500
-            order: int = 5
+            cutoff_frequency = 4500
+            order: int = 256
             # normal_cutoff = cutoff_frequency / nyquist
             b, a = butter(order, cutoff_frequency, btype='lowpass', fs=self.sample_rate_in)
             self.filter_states['mumble_low_pass'] = FilterState(b=b, a=a)
 
             # Final Lowpass (Temp, following resample)
-            cutoff_frequency = 3500
-            order: int = 5
+            cutoff_frequency = 4500
+            order: int = 30
             # normal_cutoff = cutoff_frequency / nyquist
             b, a = butter(order, cutoff_frequency, btype='lowpass', fs=48000)
             self.filter_states['mumble_final_highpass'] = FilterState(b=b, a=a)
