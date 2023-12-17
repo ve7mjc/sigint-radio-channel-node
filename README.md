@@ -16,7 +16,7 @@ Each channel "gates" the stream with either CSQ/CTCSS per rtl_airband, applies m
 * Apply filter chains (notch, low-pass, high-pass, etc) to audio streams
 * Write timestamped voice traffic to disk (wav)
 * Redirect voice channels to Mumble in realtime
-* Prevent
+* Prevent short nuissance radio clicks/kerchunks from writing to disk (minimum ptt duration)
 
 ## Requirements
 
