@@ -16,6 +16,24 @@ Each channel "gates" the stream with either CSQ/CTCSS per rtl_airband, applies m
 * Apply filter chains (notch, low-pass, high-pass, etc) to audio streams
 * Write timestamped voice traffic to disk (wav)
 * Redirect voice channels to Mumble in realtime
+* Prevent
+
+## Requirements
+
+* Python >= 3.10
+* RTLSDR-Airband
+
+## Usage
+
+### Test Development Build
+
+ ./setup-dev.sh
+
+This will configure a Python venv (Virtual Environment) and obtain all of the required third-party Python modules
+
+ ./run-dev.sh <config_file.yaml>
+
+This will start the application with the supplied configuration file
 
 ## RTLSDR-Airband Channel Listeners
 
