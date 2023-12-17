@@ -39,23 +39,23 @@ This will start the application with the supplied configuration file
 
 ### Devices
 
-- *type*: `rtlsdr_airband.(rtlsdr|soapysdr)`
-- *serial* (optional): string to pass to hardware layer for device selection
-- *index* (optional): integer to pass to hardware layer for device selection
-- *center_freq*: Optional; center frequency to tune SDR to; will be automatically calculated if omitted
-- *gain*: passed to rtl_airband
+- ***type***: `rtlsdr_airband.(rtlsdr|soapysdr)`
+- ***serial*** (optional): string to pass to hardware layer for device selection
+- ***index*** (optional): integer to pass to hardware layer for device selection
+- ***center_freq***: Optional; center frequency to tune SDR to; will be automatically calculated if omitted
+- ***gain***: passed to rtl_airband
 
 ### Channels
 
-- *id* (optional): provide an id for this channel which can be referenced elsewhere. Recommended.
+- ***id*** (optional): provide an id for this channel which can be referenced elsewhere. Recommended.
 
-- *freq*: frequency of channel in MHz
-- *label*: string description of channel; used by Mumble, logging, etc
-- *designator*: string emission designator (FCC/IC type); examples:
-  - 6K00A3E AM (Carrier + Full Sidebands) eg. VHF Air Band
-  - 11K0F3E FM Narrow (2.5 KHz) eg. Commercial Land Mobile Radio, Public Safety
-  - 16K0F3E FM Wide (5.0 KHz) eg. Marine VHF, Amateur Radio FM VHF
-- *ctcss* (optional): `float` CTCSS frequency which will then squelch by rtl_airband and also notch filtered out
+- ***freq***: frequency of channel in MHz
+- ***label***: string description of channel; used by Mumble, logging, etc
+- ***designator***: string emission designator (FCC/IC type); examples:
+  - `6K00A3E` AM (Carrier + Full Sidebands) eg. VHF Air Band
+  - `11K0F3E` FM Narrow (2.5 KHz) eg. Commercial Land Mobile Radio, Public Safety
+  - `16K0F3E` FM Wide (5.0 KHz) eg. Marine VHF, Amateur Radio FM VHF
+- ***ctcss*** (optional): `float` CTCSS frequency which will then squelch by rtl_airband and also notch filtered out
 
 ### Example Config
 
