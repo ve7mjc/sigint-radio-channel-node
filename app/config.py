@@ -13,6 +13,10 @@ from dataclasses import dataclass, field
 import yaml
 
 
+class ConfigurationException(Exception):
+    pass
+
+
 @dataclass
 class SdrDeviceConfig:
     type: str
@@ -22,7 +26,8 @@ class SdrDeviceConfig:
     correction: Optional[float] = None
     center_freq: Optional[float] = None
     rtlsdr_airband_overrides: list[str] = field(default=list)
-
+    sample_rate: Optional[int] = None
+    mode: Optional[str] = "multichannel"
 
 @dataclass
 class MumbleChannelConfig:

@@ -38,6 +38,7 @@ class RtlSdrAirbandDevice:
     correction: Optional[float] = None
     centerfreq: Optional[float] = None
     channels: list[RtlSdrAirbandChannel] = field(default_factory=list)
+    sample_rate: Optional[float] = None
 
     # special
     overrides: list[str] = field(default_factory=list)
@@ -50,4 +51,4 @@ class RtlSdrAirbandConfig:
     devices: list[RtlSdrAirbandDevice] = field(default_factory=list)
 
     # special
-    overrides: list[str] = field(default_factory=list)
+    global_overrides: list[str] = field(default_factory=list)

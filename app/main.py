@@ -61,6 +61,9 @@ async def main():
     except FileNotFoundError:
         logger.error(f"config file '{config_file}' not found!")
         sys.exit(1)
+    except Exception as e:
+        logger.error(f"error parsing config file '{config_file}': {e}")
+        sys.exit(1)
 
     # data store path
     logger.info(f"using data store path: {config.data_store_path}")

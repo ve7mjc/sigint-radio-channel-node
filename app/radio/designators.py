@@ -1,9 +1,64 @@
+"""
 
-designators: list[str] = [
-    '10K1F3E',
-    '11K2F3E',
-    '12K5F2E'
-]
+Reference: Industry Canada [TRC-43] Designation of Emissions, Class of Station and Nature of Service
+           Issue 3, November 2012
+https://ised-isde.canada.ca/site/spectrum-management-telecommunications/sites/default/files/attachments/2022/TRC-43-Nov2012-English.pdf
+
+
+"""
+
+
+from typing import Union
+
+# Legacy Designators (3 chars)
+#   - 1st = modulation_type
+#   - 2nd = type of data (eg. voice, telephony)
+#
+# "Modern" Designators
+#
+# [1,2,3,4] Necessary Bandwidth
+#
+# [5] - modulation_type:
+#    A - AM
+#    F - FM
+#
+# [6] - Data Content
+#    N - None
+#    A - Aural telegraphy, for people (Morse code)
+#    B - Telegraphy for machine copy (RTTY, fast Morse)
+#    C - Analog fax
+#    D - Data, telemetry, telecommand
+#    E - Telephony, voice, sound broadcasting
+#    F - Video, television
+#    W - Combinations of the above
+#    X - All cases not covered above
+#
+# [7] - [Not used by FCC]
+#
+# [8] - Multiplex type [Not used by FCC?]
+#    N   None
+#    C   Code division
+#    F   Frequency division
+#    T   Time division
+#    W   Combination of above
+#    X   All other types
+
+common_designators: dict[str, str] = {
+    '16K0F3E': '4 kHz FM analog voice; VHF marine, VHF/UHF ham radio',
+    '11K3F3E': '2.5 kHz FM "narrowband" analog voice',
+    '11K0F3E': 'FM Narrow LMR, GMRS, FRS, MURS, etc.',
+    # '8K40F1E': 'P25 Voice - P25 Phase I C4FM voice',
+    # '8K40F1D': 'P25 Project 25 Voice - P25 Phase I C4FM data',
+    # '8K30F1W': 'P25 Project 25 Voice and data Phase I C4FM voice and data ',
+    # '8K10F1E': 'P25 Project 25 Voice - P25 Phase I C4FM voice ',
+    # '8K10F1D': 'P25 Project 25 Data - P25 Phase I C4FM voice',
+    # '8K10FXE': '',
+    # '8K10FXD': '',
+    # '8K30F1D': 'NDXN, IDAS or NEXEDGE Wideband 12.5 kHz - Data',
+    # '8K30F1E': 'NDXN, IDAS or NEXEDGE Wideband 12.5 kHz - Digital voice',
+    # '8K30F7W': 'NXDN, IDAS or NEXEDGE Wideband 12.5 kHz - Digital voice + data combined',
+    # '8K30F1W': 'NXDN, IDAS or NEXEDGE Wideband 12.5 kHz - Digital voice + data combined',
+}
 
 # Typical Emissions Designators
 # 6K00A3E Double-Sideband Full AM for Aeronautical
@@ -22,6 +77,8 @@ class Designator:
     modulation_type: str
     modulation_type_descr: str
 
+    def signal_type_str(self) -> str:
+        pass
 
 
 multipliers: dict[str, int] = {
@@ -50,8 +107,6 @@ modulation_type_codes: dict[str, str] = {
     "W": "Pulse, two or more modes used"
 }
 
-# @dataclass
-
 def bandwidth_from_designator(designator: str) -> int:
     if len(designator) < 4:
         raise ValueError("designator must be >= 4 characters")
@@ -77,3 +132,12 @@ def decode_emissions_designator(designator: str) -> Designator:
         modulation_type=modulation_type_code,
         modulation_type_descr=modulation_type_codes[modulation_type_code]
     )
+
+def verbose_designator_dict(designator: Union[str, Designator]) -> str:
+    # permit passing of a string designator
+    if isinstance(designator, str):
+        designator = decode_emissions_designator(designator)
+
+    d = {}
+    d['bandwidth'] = designator.bandwidth
+    d['modulation_type'] = designator.modulation_type_descr

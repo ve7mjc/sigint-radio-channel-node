@@ -10,8 +10,12 @@ Project Example: https://github.com/mumble-voip/mumble/blob/master/auxiliary_fil
 https://wiki.mumble.info/wiki/Murmur.ini
 
 
-
-
 ## docker-mumble
 
 https://hub.docker.com/r/phlak/mumble
+
+
+## PyMumble (Client Library)
+
+Project: https://github.com/azlux/pymumble
+API Docs: https://github.com/azlux/pymumble/blob/pymumble_py3/API.md

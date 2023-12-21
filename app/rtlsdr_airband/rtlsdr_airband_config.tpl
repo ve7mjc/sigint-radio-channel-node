@@ -20,6 +20,9 @@ devices: (
     {% if device.serial %}
     serial = "{{ device.serial }}";
     {% endif %}
+    {% if device.sample_rate %}
+    sample_rate = {{ device.sample_rate }};
+    {% endif %}
     {% if device.gain %}
     gain = {{ device.gain }};
     {% endif %}

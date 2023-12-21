@@ -2,7 +2,7 @@ from .rtlsdr_airband.config_generator import (
     ConfigGenerator,
     RtlSdrAirbandConfig,
     RtlSdrAirbandDevice,
-    RtlSdrAirbandChannel
+    RtlAirbandConfigurationException
 )
 from .literals import DEFAULT_UDP_PORT_BASE
 from .config import AppConfig
@@ -13,6 +13,7 @@ from .rtlsdr_airband.rtl_airband import (
     ProcessEventType
 )
 from .utils import filename_from_path
+from .config import ConfigurationException
 
 import asyncio
 import logging
@@ -54,15 +55,14 @@ class RadioChannelManager:
             channel = RadioChannelProcessor(
                 config,
                 self.config.listen_address,
-                listen_port
+                listen_port,
+                data_output_path=self.config.data_store_path
             )
-
-            channel.set_data_path(self.config.data_store_path)
 
             # Mumble config
             if self.config.mumble:
                 join_channel = self.config.mumble.default_channel
-                if join_channel is None and channel.config.mumble:
+                if channel.config.mumble and channel.config.mumble.channel:
                     join_channel = channel.config.mumble.channel
                 if join_channel is None:
                     logger.warning("mumble channel not specified, cannot join!")
@@ -94,6 +94,8 @@ class RadioChannelManager:
 
         for device_cfg in self.config.devices:
 
+            # support rtlsdr_airband.* devices -- passing the subtype
+            # on as the type=xxxx for rtl_airband
             if device_cfg.type.startswith("rtlsdr_airband"):
                 device_type = device_cfg.type.replace("rtlsdr_airband.","")
                 device = RtlSdrAirbandDevice(
@@ -101,6 +103,7 @@ class RadioChannelManager:
                     serial=device_cfg.serial,
                     device_string=device_cfg.device_string,
                     gain=device_cfg.gain,
+                    sample_rate=device_cfg.sample_rate,
                     correction=device_cfg.correction,
                     overrides=device_cfg.rtlsdr_airband_overrides,
                     centerfreq=device_cfg.center_freq
@@ -108,11 +111,10 @@ class RadioChannelManager:
                 rtlsdr_airband_generator.add_device(device)
 
         if len(rtlsdr_airband_generator.config.devices) == 0:
-            raise Exception("no RTLSDR-Airband devices configured!")
+            raise RtlAirbandConfigurationException("no RTLSDR-Airband devices configured!")
 
         for channel in self.channels:
 
-            logger.debug(f"self.channel[x] = {channel}")
             # RTLSDR-Airband Channels
             rtl_airband_channel = rtlsdr_airband_generator.add_channel(
                 channel.channel, channel.config.rtlsdr_airband_overrides
@@ -143,14 +145,23 @@ class RadioChannelManager:
     def configure(self):
         try:
             self.configure_channels()
+        except RtlAirbandConfigurationException as e:
+            logger.error(f"error configuring RTLSDR-Airband: {e}")
+            sys.exit(1)
         except Exception as e:
             logger.error(f"error configuring channels: {type(e)}={e}; {traceback.format_exc()}")
 
         try:
             self.configure_rtlsdr_airband()
+        except RtlAirbandConfigurationException as e:
+            logger.error(f"error configuring RTLSDR-Airband: {e}")
+            sys.exit(1)
         except Exception as e:
             logger.error(f"error configuring RTLSDR-Airband: {type(e)}={e}; {traceback.format_exc()}")
+            sys.exit(1)
 
+        # Configuration Summary
+        print(self.configuration_summary())
 
     async def start(self):
 
@@ -167,11 +178,21 @@ class RadioChannelManager:
                 continue
             else:
                 logger.error(f"rtl_airband error: {event.type.name}")
-
                 # an rtl_airband instance has failed -- we will not proceed
                 return
-
 
         self.tasks.extend([listener.start_listener() for listener in self.channels])
 
         await asyncio.gather(*self.tasks)
+
+
+    def configuration_summary(self) -> str:
+
+        out = "\r\nConfiguration Summary:\r\n"
+
+
+        out += "\r\nChannels:\r\n"
+        for channel in self.channels:
+            out += f" {channel.channel.frequency} {channel.label}\r\n"
+
+        return out

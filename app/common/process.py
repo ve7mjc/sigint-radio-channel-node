@@ -80,16 +80,13 @@ class ProcessTask:
             logger.debug("process ready!")
         except asyncio.TimeoutError:
             await self.events.put(
-                ProcessEvent(
-                    type=ProcessEventType.READY_TIMEOUT
-                ))
+                ProcessEvent(type=ProcessEventType.READY_TIMEOUT))
 
         try:
             await asyncio.gather(*self._tasks)
         except Exception as e:
             tb = traceback.format_exc()
-            print(f"exceptions from gather() = {e}")
-            print("Traceback:", tb)
+            logger.warning(f"exceptions from gather() = {e}: {tb}")
 
         return_code = await self._process.wait()
 

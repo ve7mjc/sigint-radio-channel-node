@@ -1,7 +1,10 @@
+from ..dsp.resampling import StreamResampler
+from ..radio.channel import SessionFrame
+
 import asyncio
 import time
 import logging
-from typing import Optional
+from typing import Optional, Union
 
 
 # third-party libs
@@ -16,7 +19,17 @@ from pymumble_py3.constants import (
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_SAMPLE_RATE: int = 48000
+
+
 class MumbleChannel:
+
+    mumble: Union[Mumble, None]
+    resampler: Union[StreamResampler, None]
+    sample_rate: int
+
+    last_channel_session_id: Union[int, None]
+
     def __init__(self, server, port, username, password: str = '', **kwargs):
         self.server = server
         self.port = port
@@ -24,10 +37,14 @@ class MumbleChannel:
         self.password = password
         self.channel = kwargs.get('channel', None)
         self.mumble = None
+        self.sample_rate = DEFAULT_SAMPLE_RATE
+        self.resampler = None  # not initialized until required
         self.audio_buffer = asyncio.Queue()
         self.running = False
         self.stop_requested = False
         self.transmitting = False
+
+        self.last_channel_session_id = None
 
     async def start(self):
 
@@ -69,10 +86,33 @@ class MumbleChannel:
                 self.mumble.sound_output.add_sound(data)
             else:
                 self.transmitting = False
-                await asyncio.sleep(0.1)  # Short pause to prevent busy waiting
+                await asyncio.sleep(0.01)
 
-    def add_samples(self, samples):
-        asyncio.run_coroutine_threadsafe(self.audio_buffer.put(samples), asyncio.get_event_loop())
+    def init_resampler(self, sample_rate_in: int):
+        if not self.resampler or self.resampler.rate_in != sample_rate_in:
+            self.resampler = StreamResampler(sample_rate_in, self.sample_rate)
+
+    def add_frame(self, frame: SessionFrame):
+
+        # resample if necessary
+        if frame.sample_rate != self.sample_rate:
+            self.init_resampler(frame.sample_rate)
+            frame.samples = self.resampler.process(frame.samples)
+
+        if frame.session_id != self.last_channel_session_id:
+            self.resampler.reset()
+            self.last_channel_session_id = frame.session_id
+            logger.debug(f"new channel session_id '{frame.session_id}' - resetting!")
+
+        # ensure output is pcm s16le
+        pcm_data = np.int16(frame.samples * 32767.)
+        self.add_samples(pcm_data.tobytes())
+
+    def add_samples(self, pcm_samples: bytearray):
+        asyncio.run_coroutine_threadsafe(
+            self.audio_buffer.put(pcm_samples),
+            asyncio.get_event_loop()
+        )
 
     # Callbacks
     def sound_received(self, user, soundchunk):

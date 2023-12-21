@@ -16,7 +16,8 @@ bin_paths: list[str] = [
 default_timeout_ready_secs: float = 5.
 
 PROCESS_READY_PATTERNS: list[str] = [
-    r"^Allocating [0-9]+ zero-copy buffers$"
+    r"^Allocating [0-9]+ zero-copy buffers$",
+    r"^\[INFO\] Using format C[U|S][0-9]+\.$"
 ]
 
 class RtlSdrAirbandInstance:
@@ -51,16 +52,10 @@ class RtlSdrAirbandInstance:
         self.process = ProcessTask(ready_patterns=PROCESS_READY_PATTERNS,
                                    ready_timeout=5)
 
-    # async def wait_for_ready(self):
-    #     await self.ready_event.wait()
-
-    # async def wait_for_process(self):
-    #     await self.process.wait()
-
     async def run(self):
 
         bin_path = os.path.join(bin_paths[0], "rtl_airband")
-        command = [bin_path, '-F', '-c', self.config_file]
+        command = [bin_path, '-F', '-e', '-c', self.config_file]
 
         self._tasks.append(asyncio.create_task(self.process_output_task()))
 
@@ -76,24 +71,17 @@ class RtlSdrAirbandInstance:
 
         except Exception as e:
             logger.error(f"error type == {type(e)} {e}")
-            # await asyncio.wait_for(self.ready_event.wait(),
-            #                        timeout=timeout_ready_secs)
-        except asyncio.TimeoutError:
-            logger.error("rtl_airband timed out")
 
-
-        # return_code = await self.process.wait()
 
         self.done_event.set()
 
+    # rtl_airband writes ALL output to stderr.. yay!
     async def process_output_task(self):
         while not self.stop_requested.is_set():
             try:
-                pipe, line = await asyncio.wait_for(
+                _, line = await asyncio.wait_for(
                         self.process.output.get(), timeout=0.01)
-                if pipe == "stderr":
-                    logger.error(f"ERROR output [{pipe}]: {line}")
-                else:
-                    logger.debug(f"ERROR output [{pipe}]: {line}")
+                logger.debug(f"rtl_airband: {line}")
+
             except asyncio.TimeoutError:
                 pass
