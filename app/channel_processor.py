@@ -84,7 +84,8 @@ class RadioChannelProcessor:
 
     sample_rate: int
 
-    data_output_path: Optional[str]
+    # Channel specific
+    data_store: Optional[str]
 
     # receive_buffer: bytearray
     frames: Queue[SessionFrame]
@@ -98,8 +99,6 @@ class RadioChannelProcessor:
     mumble_outputs: list[MumbleChannel]
     mumble_tasks: list
     mumble_buffering: bool
-    mumble_debug_samples: bool
-    mumble_samples: Queue[int]
 
     # Session
     last_session_id: int
@@ -113,7 +112,7 @@ class RadioChannelProcessor:
     output_gain: float
 
     def __init__(self, config: RadioChannelConfig, listen_addr: str, listen_port: int,
-                 sample_rate: int = 16000, data_output_path: Optional[str] = None):
+                 sample_rate: int = 16000, common_data_store: Optional[str] = None):
 
         self.config = config
 
@@ -131,8 +130,12 @@ class RadioChannelProcessor:
         self.sessions = []
         self.active_session = None
 
-        # if config.ctcss:
-        #     self.set_ctcss(config.ctcss)
+        # Data Storage `common_data_store/id`
+        self.data_store = common_data_store or os.getcwd()
+        self.data_store = os.path.join(self.data_store, self.id)
+        if not os.path.exists(self.data_store):
+            os.makedirs(self.data_store, exist_ok=True)
+
         if config.label:
             self.set_label(config.label)
         self.label = config.label
@@ -158,23 +161,8 @@ class RadioChannelProcessor:
         self.mumble_tasks = []
         self.mumble_buffering = False
 
-        self.mumble_samples = Queue()
-
-        self.mumble_resampler = StreamResampler(16000, 48000)
-
-        # write samples to disk for analysis
-        self.mumble_debug_samples = True
-        self.samples = Queue()
-
-        # create a subfolder for this channel
-        self.data_output_path = data_output_path or os.getcwd()
-        self.data_output_path = os.path.join(self.data_output_path,self.id)
-        if not os.path.exists(self.data_output_path):
-            os.makedirs(self.data_output_path, exist_ok=True)
-
-        # StreamLoggers -- data_output_path may not be known!
-        self.logger_raw = StreamLogger(self.sample_rate, self.data_output_path, self.id, "raw")
-        self.logger_channel = StreamLogger(self.sample_rate, self.data_output_path, self.id)
+        self.logger_raw = StreamLogger(self.sample_rate, self.data_store, self.id, "raw")
+        self.logger_channel = StreamLogger(self.sample_rate, self.data_store, self.id)
 
         # default of unity gain on output
         self.output_gain = 1.
@@ -182,19 +170,20 @@ class RadioChannelProcessor:
         if self.channel.designator.modulation_type == 'F':
             if self.channel.designator.bandwidth == 16000:
                 self.output_gain = 1.5
-                logger.debug(f"fm bw 16k; setting gain to {self.output_gain}")
             elif self.channel.designator.bandwidth >= 11000 and self.channel.designator.bandwidth < 12000:
                 self.output_gain = 2
-                logger.debug(f"fm bw 11.25k; setting gain to {self.output_gain}")
 
-    def add_mumble_output(self, remote_host: str, remote_port: int, **kwargs):
-
-        # removed filtering
+    def add_mumble_output(self, remote_host: str, remote_port: int,
+                          certs_store: Optional[str] = None, **kwargs):
+        if self.id is None:
+            logger.error("channel does not have a valid id!")
 
         passed_args = {}
+        passed_args['cert_cn'] = self.id
         if "channel" in kwargs:
             passed_args['channel'] = kwargs.get('channel')
-        mumble_channel = MumbleChannel(remote_host, remote_port, self.label, **passed_args)
+        mumble_channel = MumbleChannel(remote_host, remote_port, self.label,
+                                       certs_store=certs_store, **passed_args)
         self.mumble_outputs.append(mumble_channel)
 
     def set_label(self, value: str):
@@ -303,7 +292,7 @@ class RadioChannelProcessor:
         # 12.5 frames per master frame -- eg. we will need to "put some back"
         # we have not addressed frame padding yet!
 
-        # while self.samples.qsize() >= samples_per_frame:
+
         while self.frames.qsize() > 0:
 
             frame = self.frames.get()

@@ -1,4 +1,6 @@
 from .designators import Designator, decode_emissions_designator
+from app.common.utils import from_dict
+from .schema import RadioChannelRecord
 
 from typing import Optional
 from datetime import datetime
@@ -12,6 +14,7 @@ import copy
 import numpy as np
 from numpy import ndarray
 from scipy.io import wavfile
+import yaml
 
 
 logger = logging.getLogger(__name__)
@@ -73,6 +76,20 @@ class SessionFrame:
     @property
     def num_samples(self) -> int:
         return len(self.samples)
+
+
+def load_channels(yaml_file: str) -> list[RadioChannelRecord]:
+
+    with open(yaml_file, "r") as file:
+        d = yaml.safe_load(file)
+
+    channels: list[RadioChannelRecord] = []
+    for chd in d['channels']:
+        print(chd)
+        c = from_dict(RadioChannelRecord, chd)
+        channels.append(c)
+
+    return channels
 
 
 # Produce disk-copies of a channel at a particular point in processing/filtering

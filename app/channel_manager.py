@@ -6,19 +6,20 @@ from .rtlsdr_airband.config_generator import (
 )
 from .literals import DEFAULT_UDP_PORT_BASE
 from .config import AppConfig
-from .channel import RadioChannelProcessor
+from .channel_processor import RadioChannelProcessor
 from .rtlsdr_airband.rtl_airband import (
     RtlSdrAirbandInstance,
     ProcessEvent,
     ProcessEventType
 )
-from .utils import filename_from_path
+from app.common.utils import filename_from_path
 from .config import ConfigurationException
 
 import asyncio
 import logging
 import sys
 import traceback
+import os
 
 
 logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ class RadioChannelManager:
                 config,
                 self.config.listen_address,
                 listen_port,
-                data_output_path=self.config.data_store_path
+                common_data_store=self.config.data_path
             )
 
             # Mumble config
@@ -67,10 +68,12 @@ class RadioChannelManager:
                 if join_channel is None:
                     logger.warning("mumble channel not specified, cannot join!")
                 else:
+                    certs_store = os.path.join(self.config.cache_path, "certs")
                     channel.add_mumble_output(
                         self.config.mumble.remote_host,
                         self.config.mumble.remote_port,
-                        channel=join_channel
+                        channel=join_channel,
+                        certs_store=certs_store
                     )
 
             self.channels.append(channel)
@@ -187,12 +190,9 @@ class RadioChannelManager:
 
 
     def configuration_summary(self) -> str:
-
         out = "\r\nConfiguration Summary:\r\n"
-
-
         out += "\r\nChannels:\r\n"
         for channel in self.channels:
-            out += f" {channel.channel.frequency} {channel.label}\r\n"
+            out += f" {channel.channel.frequency:.3f} {channel.label}\r\n"
 
         return out

@@ -1,13 +1,14 @@
 # project libs
-from .utils import from_dict
+from app.common.utils import from_dict
 from .literals import (
     DEFAULT_CONFIG_FILE, DEFAULT_UDP_LISTEN_ADDR,
     DEFAULT_DATA_STORE_PATH, DEFAULT_UDP_PORT_BASE
 )
 
 # system libs
-from typing import Optional
+from typing import Optional, Union
 from dataclasses import dataclass, field
+import os
 
 # third-party/ext libs
 import yaml
@@ -75,32 +76,42 @@ class AppConfig:
     listen_address: str = DEFAULT_UDP_LISTEN_ADDR
     listen_port_base: int = DEFAULT_UDP_PORT_BASE
 
-    data_store_path: Optional[str] = DEFAULT_DATA_STORE_PATH
+    data_path: Optional[str] = DEFAULT_DATA_STORE_PATH
+    cache_path: Optional[str] = None
     devices: list[SdrDeviceConfig] = field(default_factory=list)
     channels: list[RadioChannelConfig] = field(default_factory=list)
 
 
 # global config instance
-_config: Optional[AppConfig] = None
+# _config: Union[AppConfig, None] = None
 
 
-def load_yaml_config(filename: str = DEFAULT_CONFIG_FILE) -> AppConfig:
+class ConfigManager:
 
-    with open(filename, "r") as f:
-        d = yaml.safe_load(f)
+    config_dict: dict
+    config: Union[AppConfig, None]
 
-    # insert config filename
-    d['config_file'] = filename
+    def __init__(self):
+        self.config_dict = {}
+        self.config = None
 
-    config: AppConfig = from_dict(AppConfig, d)
-    return config
+    def add_yaml(self, filename: str):
 
+        with open(filename, "r") as f:
+            d = yaml.safe_load(f)
 
-def get_config(filename: str):
-    global _config
-    if _config:
-        return _config
+        # insert config filename
+        d['config_file'] = filename
 
-    _config = load_yaml_config(filename)
+        self.config_dict = {**self.config_dict, **d}
 
-    return _config
+    def process_config(self) -> AppConfig:
+
+        config: AppConfig = from_dict(AppConfig, self.config_dict)
+
+        # build paths
+        if not config.cache_path:
+            config.cache_path = os.path.join(config.data_path, "cache/")
+
+        self.config = config
+        return config

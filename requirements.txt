@@ -9,3 +9,9 @@ resampy
 
 # libsamplerate wrapper
 samplerate
+
+cryptography
+aiofiles
+
+# rabbitmq
+aio-pika

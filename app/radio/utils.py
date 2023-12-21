@@ -1,4 +1,46 @@
 from typing import Union
+from math import trunc
+
+def frequency_center(channels: list[Union[int,float]]) -> Union[int,float]:
+
+    if len(channels) == 0:
+        return None
+    elif len(channels) == 1:
+        return channels[0]
+
+    input_float = isinstance(channels[0], float) or False
+
+    chan_max = max(channels)
+    chan_min = min(channels)
+    freq_center = chan_min + ((chan_max - chan_min) / 2)
+
+    # convert to float and MHz if not already
+    if not input_float:
+        freq_center = float(freq_center / 1e6)
+
+    # truncate to 1 decimal place
+    freq_center = trunc(freq_center * 10) / 10
+
+    # back to integer Hz if required
+    if not input_float:
+        freq_center = int(freq_center * 1e6)
+
+    return freq_center
+
+# Return center which is not on one of the channels
+# slightly offset if necessary
+# def frequency_center_space(channels: list[Union[int,float]]) -> Union[int,float]:
+#     if len(channels) == 0:
+#         return None
+#     elif len(channels) == 1:
+#         return channels[0]
+
+#     chan_max = max(channels)
+#     chan_min = min(channels)
+#     freq_center = chan_min + ((chan_max - chan_min) / 2)
+
+#     return freq_center
+
 
 
 def channel_closest_center(channels: list[Union[int,float]]) -> Union[int,float]:

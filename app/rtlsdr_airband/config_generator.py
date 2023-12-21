@@ -4,7 +4,7 @@ from .schema import (
 )
 from app.radio.channel import RadioChannel
 from .literals import RTLSDR_MAX_BANDWIDTH
-from app.radio.utils import channel_closest_center, bandwidth_required
+from app.radio.utils import frequency_center, bandwidth_required
 
 import os
 from statistics import median
@@ -96,9 +96,12 @@ class ConfigGenerator:
             center_channel = self.config.devices[0].centerfreq
             logger.info(f"using center freq of {center_channel} from config")
         else:
-            center_channel = channel_closest_center(freqs)
-            self.config.devices[0].centerfreq = center_channel
-            logger.info(f"using center freq of {center_channel} from {freqs}")
+            center_freq = round(frequency_center(freqs), 3)
+            self.config.devices[0].centerfreq = center_freq
+            logger.info(f"using center freq of {center_freq:.3f} from {freqs}")
+            # center_channel = channel_closest_center(freqs)
+            # self.config.devices[0].centerfreq = center_channel
+            # logger.info(f"using center freq of {center_channel} from {freqs}")
 
         #
         # Required bandwidth

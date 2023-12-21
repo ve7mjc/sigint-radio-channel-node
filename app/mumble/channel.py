@@ -1,5 +1,6 @@
 from ..dsp.resampling import StreamResampler
 from ..radio.channel import SessionFrame
+from .certificate import get_certificate, Certificate
 
 import asyncio
 import time
@@ -13,7 +14,9 @@ from pymumble_py3 import Mumble
 from pymumble_py3.constants import (
     PYMUMBLE_CLBK_SOUNDRECEIVED as SOUND_RECEIVED,
     PYMUMBLE_CLBK_USERCREATED as USER_CREATED,
-    PYMUMBLE_CLBK_USERREMOVED as USER_REMOVED
+    PYMUMBLE_CLBK_USERREMOVED as USER_REMOVED,
+    PYMUMBLE_CLBK_CONNECTED as CONNECTED,
+    PYMUMBLE_CLBK_DISCONNECTED as DISCONNECTED
 )
 
 logger = logging.getLogger(__name__)
@@ -30,12 +33,29 @@ class MumbleChannel:
 
     last_channel_session_id: Union[int, None]
 
-    def __init__(self, server, port, username, password: str = '', **kwargs):
+    # Certificate
+    certs_store: str
+    cert_cn: str
+    certfile: Union[str, None]
+    keyfile: Union[str, None]
+
+    def __init__(self, server, port, username, password: str = '',
+                 certs_store: Optional[str] = None, **kwargs):
+
         self.server = server
         self.port = port
         self.username = username
         self.password = password
+
         self.channel = kwargs.get('channel', None)
+
+        # certificate
+        self.certs_store = certs_store
+        self.cert_cn = kwargs.get('cert_cn', None)
+        self.keyfile = kwargs.get('keyfile', None)
+        self.certfile = kwargs.get('certfile', None)
+
+        # defaults/inits
         self.mumble = None
         self.sample_rate = DEFAULT_SAMPLE_RATE
         self.resampler = None  # not initialized until required
@@ -48,15 +68,25 @@ class MumbleChannel:
 
     async def start(self):
 
-        self.mumble = Mumble(self.server, self.username, password=self.password, port=self.port)
+        if self.certs_store is None and self.cert_cn is None:
+            logger.warning("cert_store or cert_cn not specified;"
+                           "cannot use certs")
+        else:
+            cert: Certificate = await get_certificate(self.certs_store, self.cert_cn)
+            self.keyfile = cert.keyfile
+            self.certfile = cert.certfile
 
-        self.mumble.callbacks.set_callback(SOUND_RECEIVED, self.sound_received)
-        self.mumble.callbacks.set_callback(USER_CREATED, self.user_created)
-        self.mumble.callbacks.set_callback(USER_REMOVED, self.user_removed)
+        self.mumble = Mumble(self.server, self.username,
+                             password=self.password, port=self.port,
+                             keyfile=self.keyfile, certfile=self.certfile,
+                             reconnect=True)
 
-        self.mumble.set_application_string("MumbleChannelBot")
+        self.mumble.callbacks.set_callback(CONNECTED, self.on_connected)
+        self.mumble.callbacks.set_callback(DISCONNECTED, self.on_disconnected)
 
-        logger.debug(f"connecting to Mumble server - {self.username}@{self.server}:{self.port} ...")
+        self.mumble.set_application_string("RadioChannel")
+
+        logger.debug(f"connecting to Mumble .. \"{self.username}\"@{self.server}:{self.port} ...")
 
         self.mumble.start()
 
@@ -65,18 +95,15 @@ class MumbleChannel:
 
         # warning - could be blocking here
         if self.channel:
-            logger.debug(f"joining channel '{self.channel}'")
             self.mumble.channels.find_by_name(self.channel).move_in()
 
         self.running = True
-
-        logger.info(f"mumble client ready! ('{self.username}'@{self.server}:{self.port})")
 
         await self.stream_audio()
 
     def stop(self):
         asyncio.run_coroutine_threadsafe(self.audio_buffer.put(None), asyncio.get_event_loop())
-        self.mumble.stop()  # not sure if this is right
+
 
     async def stream_audio(self):
         while not self.stop_requested:
@@ -115,15 +142,21 @@ class MumbleChannel:
         )
 
     # Callbacks
-    def sound_received(self, user, soundchunk):
-        pass  # Handle received sound
+    def on_connected(self):
+        logger.info(f"mumble connected: '{self.username}'@{self.server}:{self.port}")
 
-    def user_created(self, user):
-        pass  # Handle user creation
+    def on_disconnected(self):
+        logger.info(f"mumble disconnected: '{self.username}'@{self.server}:{self.port}")
 
-    def user_removed(self, user: str, message: str):
-        # logger.debug(f"mumble: USER_REMOVED {user},{message}")
-        pass  # Handle user removal
+    # def sound_received(self, user, soundchunk):
+    #     pass  # Handle received sound
+
+    # def user_created(self, user):
+    #     pass  # Handle user creation
+
+    # def user_removed(self, user: str, message: str):
+    #     # logger.debug(f"mumble: USER_REMOVED {user},{message}")
+    #     pass  # Handle user removal
 
 # Usage example
 async def main():
