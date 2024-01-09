@@ -1,12 +1,15 @@
 from .rtlsdr_airband.literals import DEFAULT_STREAM_TIMEOUT_SECS
 # from .dsp.filters import iir_notch, iir_highpass
 from .dsp.filters import StreamingFilter, FilterType
-from .dsp.resampling import StreamResampler
+
 
 from .literals import DEFAULT_MINIMUM_VOICE_ACTIVE_SECS, SAMPLE_SECS_PER_FRAME
 from .mumble.channel import MumbleChannel
 from app.config import RadioChannelConfig
-from app.radio.channel import RadioChannel, RadioChannelSession, SessionFrame, StreamLogger
+# from app.radio.channel import RadioChannel, RadioChannelSession, SessionFrame, StreamLogger
+from app.radio.datalogger import StreamLogger
+from app.radio.schema import RadioChannel, SessionFrame, RadioChannelSession
+from app.radio.datalogger import ChannelDataLogger
 
 # experiment to test if we are getting jitter from the 8,000 byte frames..
 # 8k/4 = 2k samples
@@ -24,12 +27,9 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# squelch resampy logging
-# logging.getLogger('numba.core.ssa').setLevel(logging.CRITICAL)
-# logging.getLogger('numba.core.interpreter').setLevel(logging.CRITICAL)
-# logging.getLogger('numba.core.byteflow').setLevel(logging.CRITICAL)
 
 class PttVoiceDatagramProtocol(asyncio.DatagramProtocol):
+
     def __init__(self, on_data: Callable, on_done: Callable,
                  timeout: float = DEFAULT_STREAM_TIMEOUT_SECS):
 
@@ -105,14 +105,21 @@ class RadioChannelProcessor:
     sessions: list[RadioChannelSession]
     active_session: Union[RadioChannelSession, None]
 
-    # Stream Loggers
+    # DataLoggers
+    datalogger: ChannelDataLogger
     logger_raw: StreamLogger
     logger_channel: StreamLogger
 
     output_gain: float
 
-    def __init__(self, config: RadioChannelConfig, listen_addr: str, listen_port: int,
-                 sample_rate: int = 16000, common_data_store: Optional[str] = None):
+    def __init__(
+            self,
+            config: RadioChannelConfig,
+            listen_addr: str,
+            listen_port: int,
+            sample_rate: int = 16000,
+            common_data_store: Optional[str] = None
+        ):
 
         self.config = config
 
@@ -161,8 +168,16 @@ class RadioChannelProcessor:
         self.mumble_tasks = []
         self.mumble_buffering = False
 
-        self.logger_raw = StreamLogger(self.sample_rate, self.data_store, self.id, "raw")
-        self.logger_channel = StreamLogger(self.sample_rate, self.data_store, self.id)
+        # self.logger_raw = StreamLogger(self.sample_rate, self.data_store, self.id, "raw")
+        # self.logger_channel = StreamLogger(self.sample_rate, self.data_store, self.id)
+
+        self.datalogger = ChannelDataLogger(
+            channel_id=self.id,
+            data_store=self.data_store,
+            sample_rate=self.sample_rate
+        )
+        self.logger_channel = self.datalogger.add_stream()
+        self.logger_raw = self.datalogger.add_stream("raw")
 
         # default of unity gain on output
         self.output_gain = 1.
@@ -199,9 +214,7 @@ class RadioChannelProcessor:
         logger.debug(f"channel id={self.id} PTT stream udp/{self.listen_port}"
                      f" started; session_id = {self.active_session.id}")
 
-        self.logger_raw.start(session.timestamp_start)
-        self.logger_channel.start(session.timestamp_start)
-
+        self.datalogger.start_event(session.start_time)
 
     def _stop_stream(self):
 
@@ -226,8 +239,7 @@ class RadioChannelProcessor:
         #     logger.debug(f"{self.label} - PTT ended; [{round(duration_voice, 2)} sec]")
         #     samples = np.frombuffer(self.receive_buffer.copy(), dtype=np.float32)
 
-        self.logger_raw.write()
-        self.logger_channel.write()
+        self.datalogger.finish_event()
 
         # Clear the buffer and reset the start time
         # self.receive_buffer.clear()

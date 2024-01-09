@@ -15,3 +15,8 @@ aiofiles
 
 # rabbitmq
 aio-pika
+
+# continuous wavelet transform
+pywavelets
+
+matplotlib

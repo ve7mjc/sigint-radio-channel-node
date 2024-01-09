@@ -30,6 +30,7 @@ class SdrDeviceConfig:
     sample_rate: Optional[int] = None
     mode: Optional[str] = "multichannel"
 
+
 @dataclass
 class MumbleChannelConfig:
     enabled: bool = field(default=True)
@@ -67,6 +68,11 @@ class MumbleConfig:
 
 
 @dataclass
+class SensorConfig:
+    geolocation: Optional[list[float]] = None
+
+
+@dataclass
 class AppConfig:
     config_file: str
     mumble: Optional[MumbleConfig] = None
@@ -81,9 +87,7 @@ class AppConfig:
     devices: list[SdrDeviceConfig] = field(default_factory=list)
     channels: list[RadioChannelConfig] = field(default_factory=list)
 
-
-# global config instance
-# _config: Union[AppConfig, None] = None
+    sensor: Optional[SensorConfig] = None
 
 
 class ConfigManager:

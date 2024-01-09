@@ -1,5 +1,5 @@
 from ..dsp.resampling import StreamResampler
-from ..radio.channel import SessionFrame
+from ..radio.schema import SessionFrame
 from .certificate import get_certificate, Certificate
 
 import asyncio
@@ -86,7 +86,7 @@ class MumbleChannel:
 
         self.mumble.set_application_string("RadioChannel")
 
-        logger.debug(f"connecting to Mumble .. \"{self.username}\"@{self.server}:{self.port} ...")
+        logger.debug(f"Mumble channel connecting -> \"{self.username}\"@{self.server}:{self.port} ...")
 
         self.mumble.start()
 
@@ -143,10 +143,10 @@ class MumbleChannel:
 
     # Callbacks
     def on_connected(self):
-        logger.info(f"mumble connected: '{self.username}'@{self.server}:{self.port}")
+        logger.info(f"Mumble connected: '{self.username}'@{self.server}:{self.port}")
 
     def on_disconnected(self):
-        logger.info(f"mumble disconnected: '{self.username}'@{self.server}:{self.port}")
+        logger.info(f"Mumble disconnected: '{self.username}'@{self.server}:{self.port}")
 
     # def sound_received(self, user, soundchunk):
     #     pass  # Handle received sound

@@ -1,5 +1,6 @@
 from typing import Union
 from math import trunc
+import os
 
 def frequency_center(channels: list[Union[int,float]]) -> Union[int,float]:
 
@@ -76,4 +77,6 @@ def bandwidth_required(channel_frequencies: list[float],
         freq_max_hz = int(max(channel_frequencies) * 1e6)
 
         return (freq_max_hz - freq_min_hz) + channel_width
+
+
 

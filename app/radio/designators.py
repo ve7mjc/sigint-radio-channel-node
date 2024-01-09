@@ -7,6 +7,8 @@ https://ised-isde.canada.ca/site/spectrum-management-telecommunications/sites/de
 
 """
 
+MIN_DESIGNATOR_LENGTH = 4
+MAX_DESIGNATOR_LENGTH = len("11K0F3EJN")
 
 from typing import Union
 
@@ -108,15 +110,19 @@ modulation_type_codes: dict[str, str] = {
 }
 
 def bandwidth_from_designator(designator: str) -> int:
-    if len(designator) < 4:
+
+    if len(designator) < MIN_DESIGNATOR_LENGTH:
         raise ValueError("designator must be >= 4 characters")
+
     for code, value in multipliers.items():
         if code in designator:
             return int(float(designator[:4].replace(code,".")) * value)
     raise ValueError("could not determine bandwidth from designator")
 
 def decode_emissions_designator(designator: str) -> Designator:
-    if len(designator) < 6 or len(designator) > 8:
+
+    if len(designator) < MIN_DESIGNATOR_LENGTH or \
+        len(designator) > MAX_DESIGNATOR_LENGTH:
         raise ValueError(f"unexpected designator length ({len(designator)})!")
 
     bandwidth = bandwidth_from_designator(designator)

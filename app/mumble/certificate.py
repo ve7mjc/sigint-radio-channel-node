@@ -73,7 +73,7 @@ async def create_self_signed_cert(certs_path: str, cn: str) -> Certificate:
     # Write our certificate out to disk.
     async with aiofiles.open(cert.certfile, "wb") as f:
         await f.write(certificate.public_bytes(Encoding.PEM))
-        logger.debug(f"wrote certificate: {cert.certfile}")
+        logger.info(f"wrote certificate: {cert.certfile}")
 
     # Also write the private key
     async with aiofiles.open(cert.keyfile, "wb") as f:
@@ -83,7 +83,7 @@ async def create_self_signed_cert(certs_path: str, cn: str) -> Certificate:
             PrivateFormat.PKCS8,
             NoEncryption()  # Or use BestAvailableEncryption for password-protected encryption
         ))
-        logger.debug(f"wrote private key: {cert.keyfile}")
+        logger.info(f"wrote private key: {cert.keyfile}")
 
     return cert
 
@@ -91,7 +91,7 @@ async def create_self_signed_cert(certs_path: str, cn: str) -> Certificate:
 async def get_certificate(certs_path: str, cn: str) -> Certificate:
 
     try:
-        logger.debug(f"get_certificate({certs_path}, {cn})")
+        # logger.debug(f"get_certificate({certs_path}, {cn})")
         certfile = f"{cn}.pem"
         certfile_path = os.path.join(certs_path, certfile)
         keyfile = f"{cn}.key"

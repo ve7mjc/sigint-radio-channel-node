@@ -2,7 +2,7 @@ from .schema import (
     RtlSdrAirbandChannel, RtlSdrAirbandConfig,
     RtlSdrAirbandDevice
 )
-from app.radio.channel import RadioChannel
+from app.radio.schema import RadioChannel
 from .literals import RTLSDR_MAX_BANDWIDTH
 from app.radio.utils import frequency_center, bandwidth_required
 

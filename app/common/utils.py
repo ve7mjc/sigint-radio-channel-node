@@ -1,4 +1,4 @@
-from dataclasses import is_dataclass, fields, MISSING
+from dataclasses import is_dataclass, fields, MISSING, asdict
 from typing import TypeVar, Type, Any, get_args, get_origin, Union
 import os
 import logging
@@ -51,3 +51,30 @@ def filename_from_path(file_path: str) -> str:
     filename, _ = os.path.splitext(base_name)
     return filename
 
+
+def dataclass_to_dict(obj: Any) -> Any:
+    if is_dataclass(obj):
+        return {k: dataclass_to_dict(v) for k, v in asdict(obj).items()}
+    elif isinstance(obj, (list, tuple)):
+        return [dataclass_to_dict(item) for item in obj]
+    else:
+        return obj
+
+
+def find_files(path: str, extension: str):
+    """
+    This function searches recursively for all .{extension} files in the given path.
+    It returns a list of tuples where each tuple contains:
+    - The relative path to the found file
+    - The relative path to the folder in dot-notated format
+    - The filename
+    """
+    yaml_files = []
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(extension):
+                relative_path = os.path.relpath(os.path.join(root, file), path)
+                folder_path_dot_notated = root.replace(os.sep, '.')
+                yaml_files.append((relative_path, folder_path_dot_notated, file))
+
+    return yaml_files
