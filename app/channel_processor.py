@@ -3,13 +3,18 @@ from .rtlsdr_airband.literals import DEFAULT_STREAM_TIMEOUT_SECS
 from .dsp.filters import StreamingFilter, FilterType
 
 
-from .literals import DEFAULT_MINIMUM_VOICE_ACTIVE_SECS, SAMPLE_SECS_PER_FRAME
+from .literals import (
+    DEFAULT_MINIMUM_VOICE_ACTIVE_SECS,
+    SAMPLE_SECS_PER_FRAME
+)
 from .mumble.channel import MumbleChannel
 from app.config import RadioChannelConfig
-# from app.radio.channel import RadioChannel, RadioChannelSession, SessionFrame, StreamLogger
-from app.radio.datalogger import StreamLogger
-from app.radio.schema import RadioChannel, SessionFrame, RadioChannelSession
-from app.radio.datalogger import ChannelDataLogger
+# from app.radio.channel import RadioChannel, RadioChannelSession, Frame, StreamLogger
+
+from app.radio.schema import RadioChannel, RadioChannelSession
+from app.dsp.disk_writer import StreamDiskWriter, ChannelDiskWriter
+from app.dsp.frame import Frame
+from app.dsp.schema import DiskWriterConfig
 
 # experiment to test if we are getting jitter from the 8,000 byte frames..
 # 8k/4 = 2k samples
@@ -88,7 +93,7 @@ class RadioChannelProcessor:
     data_store: Optional[str]
 
     # receive_buffer: bytearray
-    frames: Queue[SessionFrame]
+    frames: Queue[Frame]
 
     # Filters
     filters_notch: list[StreamingFilter]
@@ -106,9 +111,9 @@ class RadioChannelProcessor:
     active_session: Union[RadioChannelSession, None]
 
     # DataLoggers
-    datalogger: ChannelDataLogger
-    logger_raw: StreamLogger
-    logger_channel: StreamLogger
+    disk_writer: Optional[ChannelDiskWriter] = None
+    # stream_logger_raw: StreamDiskWriter
+    # stream_logger: StreamDiskWriter
 
     output_gain: float
 
@@ -118,7 +123,7 @@ class RadioChannelProcessor:
             listen_addr: str,
             listen_port: int,
             sample_rate: int = 16000,
-            common_data_store: Optional[str] = None
+            disk_writer_config: Optional[DiskWriterConfig] = None
         ):
 
         self.config = config
@@ -136,12 +141,13 @@ class RadioChannelProcessor:
         self.last_session_id = 0
         self.sessions = []
         self.active_session = None
+        self.disk_writer = None
 
         # Data Storage `common_data_store/id`
-        self.data_store = common_data_store or os.getcwd()
-        self.data_store = os.path.join(self.data_store, self.id)
-        if not os.path.exists(self.data_store):
-            os.makedirs(self.data_store, exist_ok=True)
+        # self.data_store = disk_writer_config.base_path or os.getcwd()
+        # self.data_store = os.path.join(self.data_store, self.id)
+        # if not os.path.exists(self.data_store):
+        #     os.makedirs(self.data_store, exist_ok=True)
 
         if config.label:
             self.set_label(config.label)
@@ -168,16 +174,13 @@ class RadioChannelProcessor:
         self.mumble_tasks = []
         self.mumble_buffering = False
 
-        # self.logger_raw = StreamLogger(self.sample_rate, self.data_store, self.id, "raw")
-        # self.logger_channel = StreamLogger(self.sample_rate, self.data_store, self.id)
-
-        self.datalogger = ChannelDataLogger(
-            channel_id=self.id,
-            data_store=self.data_store,
-            sample_rate=self.sample_rate
-        )
-        self.logger_channel = self.datalogger.add_stream()
-        self.logger_raw = self.datalogger.add_stream("raw")
+        if disk_writer_config:
+            self.disk_writer = ChannelDiskWriter(
+                channel_id=self.id,
+                data_store=disk_writer_config.base_path,
+                sample_rate=self.sample_rate,
+                minimum_record_secs=disk_writer_config.minimum_length_secs
+            )
 
         # default of unity gain on output
         self.output_gain = 1.
@@ -187,6 +190,15 @@ class RadioChannelProcessor:
                 self.output_gain = 1.5
             elif self.channel.designator.bandwidth >= 11000 and self.channel.designator.bandwidth < 12000:
                 self.output_gain = 2
+
+    def add_disk_writer(self, config: DiskWriterConfig, id: Optional[str] = None) -> None:
+        if self.disk_writer is None:
+            raise Exception("disk writer is not configured!")
+
+        # we have initialized a ChannelDataLogger with
+        # default data_store, and sample_rate already
+        self.disk_writer.add_stream_writer(id)
+        # self.stream_logger_raw = self.datalogger.add_stream("raw")
 
     def add_mumble_output(self, remote_host: str, remote_port: int,
                           certs_store: Optional[str] = None, **kwargs):
@@ -214,7 +226,7 @@ class RadioChannelProcessor:
         logger.debug(f"channel id={self.id} PTT stream udp/{self.listen_port}"
                      f" started; session_id = {self.active_session.id}")
 
-        self.datalogger.start_event(session.start_time)
+        self.disk_writer.start_event(session.start_time)
 
     def _stop_stream(self):
 
@@ -239,7 +251,7 @@ class RadioChannelProcessor:
         #     logger.debug(f"{self.label} - PTT ended; [{round(duration_voice, 2)} sec]")
         #     samples = np.frombuffer(self.receive_buffer.copy(), dtype=np.float32)
 
-        self.datalogger.finish_event()
+        self.disk_writer.finish_event()
 
         # Clear the buffer and reset the start time
         # self.receive_buffer.clear()
@@ -266,7 +278,7 @@ class RadioChannelProcessor:
 
         # Build, populate, and enqueue a frame
         unpacked_data = struct.unpack(f'<{len(data) // 4}f', data)
-        frame = SessionFrame(self.active_session.id, self.sample_rate,
+        frame = Frame(self.active_session.id, self.sample_rate,
                              np.array(unpacked_data, dtype=np.float32))
         self.frames.put_nowait(frame)
 
@@ -309,13 +321,15 @@ class RadioChannelProcessor:
 
             frame = self.frames.get()
 
-            self.logger_raw.add_frame(frame)
+            # disabling raw logger for now
+            # self.stream_logger_raw.add_frame(frame)
 
             # apply filter stages
             frame.samples = self.filter_highpass.filter(frame.samples)
             frame.samples = self.filter_lowpass.filter(frame.samples)
 
-            self.logger_channel.add_frame(frame)
+            if self.disk_writer is not None:
+                self.disk_writer.add_frame(frame)
 
             # level normalization / fixed gain
             frame.samples = frame.samples * self.output_gain

@@ -3,6 +3,15 @@ from typing import Optional
 import os
 import sys
 
+from numpy import ndarray
+
+
+@dataclass
+class DiskWriterConfig:
+    minimum_length_secs: float
+    base_path: Optional[str] = None
+    sampling_rate: Optional[int] = None
+
 
 @dataclass
 class SamplesSequenceSummary:

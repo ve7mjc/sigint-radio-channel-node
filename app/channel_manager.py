@@ -14,6 +14,7 @@ from .rtlsdr_airband.rtl_airband import (
 )
 from app.common.utils import filename_from_path
 from .config import ConfigurationException
+from .dsp.schema import DiskWriterConfig
 
 import asyncio
 import logging
@@ -53,12 +54,23 @@ class RadioChannelManager:
 
             listen_port = config.udp_port or self._get_next_listen_port()
 
+            # Configure StreamWriter
+            if self.config.data_path is None:
+                raise Exception("no data_path configured!")
+
+            disk_writer_config: DiskWriterConfig = DiskWriterConfig(
+                minimum_length_secs=self.config.minimum_voice_record_secs,
+                base_path=self.config.data_path
+            )
+
             channel = RadioChannelProcessor(
                 config,
                 self.config.listen_address,
                 listen_port,
-                common_data_store=self.config.data_path
+                disk_writer_config=disk_writer_config
             )
+
+            channel.add_disk_writer(disk_writer_config)
 
             # Mumble config
             if self.config.mumble:

@@ -1,8 +1,11 @@
 # project libs
 from app.common.utils import from_dict
 from .literals import (
-    DEFAULT_CONFIG_FILE, DEFAULT_UDP_LISTEN_ADDR,
-    DEFAULT_DATA_STORE_PATH, DEFAULT_UDP_PORT_BASE
+    DEFAULT_CONFIG_FILE,
+    DEFAULT_UDP_LISTEN_ADDR,
+    DEFAULT_DATA_STORE_PATH,
+    DEFAULT_UDP_PORT_BASE,
+    DEFAULT_MINIMUM_VOICE_ACTIVE_SECS
 )
 
 # system libs
@@ -16,6 +19,7 @@ import yaml
 
 class ConfigurationException(Exception):
     pass
+
 
 
 @dataclass
@@ -82,7 +86,10 @@ class AppConfig:
     listen_address: str = DEFAULT_UDP_LISTEN_ADDR
     listen_port_base: int = DEFAULT_UDP_PORT_BASE
 
+    # stream recording
     data_path: Optional[str] = DEFAULT_DATA_STORE_PATH
+    minimum_voice_record_secs: float = DEFAULT_MINIMUM_VOICE_ACTIVE_SECS
+
     cache_path: Optional[str] = None
     devices: list[SdrDeviceConfig] = field(default_factory=list)
     channels: list[RadioChannelConfig] = field(default_factory=list)

@@ -1,5 +1,5 @@
 from ..dsp.resampling import StreamResampler
-from ..radio.schema import SessionFrame
+from ..dsp.frame import Frame
 from .certificate import get_certificate, Certificate
 
 import asyncio
@@ -119,7 +119,7 @@ class MumbleChannel:
         if not self.resampler or self.resampler.rate_in != sample_rate_in:
             self.resampler = StreamResampler(sample_rate_in, self.sample_rate)
 
-    def add_frame(self, frame: SessionFrame):
+    def add_frame(self, frame: Frame):
 
         # resample if necessary
         if frame.sample_rate != self.sample_rate:
