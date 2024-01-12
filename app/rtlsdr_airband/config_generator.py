@@ -65,6 +65,7 @@ class ConfigGenerator:
         elif channel.designator.modulation_type == "F":
             rtlsdr_modulation = 'nfm'
 
+
         ch = RtlSdrAirbandChannel(
             freq=channel.frequency,
             modulation=rtlsdr_modulation,

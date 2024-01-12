@@ -132,7 +132,12 @@ class RadioChannelProcessor:
         self.id = config.id
 
         # determine radio channel mode
-        self.channel = RadioChannel(config.freq)
+        self.channel = RadioChannel(
+            config.freq,
+            ctcss=config.ctcss,
+            designator=config.designator
+        )
+
         if config.designator:
             self.channel.set_emissions_designator(config.designator)
 

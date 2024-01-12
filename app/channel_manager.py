@@ -58,9 +58,11 @@ class RadioChannelManager:
             if self.config.data_path is None:
                 raise Exception("no data_path configured!")
 
+            # channel subfolder
+            writer_path: str = os.path.join(self.config.data_path, config.id)
             disk_writer_config: DiskWriterConfig = DiskWriterConfig(
                 minimum_length_secs=self.config.minimum_voice_record_secs,
-                base_path=self.config.data_path
+                base_path=writer_path
             )
 
             channel = RadioChannelProcessor(

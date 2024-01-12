@@ -68,10 +68,13 @@ class RadioChannel:
 
     designator: Optional[Designator]
 
-    def __init__(self, frequency: float):
+    def __init__(self, frequency: float,
+                 designator: Optional[str] = None,
+                 ctcss: Optional[float] = None):
+
         self.frequency = frequency
-        self.ctcss = None
-        self.designator = None
+        self.ctcss = ctcss
+        self.designator = designator
 
     def set_ctcss(self, value: float):
         self.ctcss = value
