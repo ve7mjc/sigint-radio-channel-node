@@ -5,6 +5,7 @@ venv
 *.cfg
 *.yaml
 *.conf
+*.swp
 
 RTLSDR-Airband/
 
