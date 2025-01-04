@@ -1,5 +1,10 @@
 #!/bin/bash
 
+sudo apt install libopus0
+
+# override to Python3.10 since Python >= 3.12 causes SSL errors with Pymumble
+PYTHON_PATH="python3.10"
+
 # Get the Python version
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
 MIN_VERSION="3.10"
@@ -11,6 +16,7 @@ if [[ "$(printf '%s\n' "$MIN_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" !
 fi
 
 echo "Python version is ${PYTHON_VERSION}"
+echo "using ${PYTHON_PATH}"
 
-python3 -m venv venv
+${PYTHON_PATH} -m venv venv
 venv/bin/pip install -r requirements.txt
