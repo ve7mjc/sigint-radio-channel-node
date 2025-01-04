@@ -16,7 +16,8 @@ from pymumble_py3.constants import (
     PYMUMBLE_CLBK_USERCREATED as USER_CREATED,
     PYMUMBLE_CLBK_USERREMOVED as USER_REMOVED,
     PYMUMBLE_CLBK_CONNECTED as CONNECTED,
-    PYMUMBLE_CLBK_DISCONNECTED as DISCONNECTED
+    PYMUMBLE_CLBK_DISCONNECTED as DISCONNECTED,
+    PYMUMBLE_CLBK_PERMISSIONDENIED as PERMISSIONDENIED
 )
 
 logger = logging.getLogger(__name__)
@@ -33,13 +34,17 @@ class MumbleChannel:
 
     last_channel_session_id: Union[int, None]
 
+    username: str
+    channel: Optional[str]
+    password: Optional[str]
+
     # Certificate
     certs_store: str
     cert_cn: str
     certfile: Union[str, None]
     keyfile: Union[str, None]
 
-    def __init__(self, server, port, username, password: str = '',
+    def __init__(self, server, port, username, password: Optional[str] = None,
                  certs_store: Optional[str] = None, **kwargs):
 
         self.server = server
@@ -76,22 +81,40 @@ class MumbleChannel:
             self.keyfile = cert.keyfile
             self.certfile = cert.certfile
 
+        pymumble_debug: bool = False
+
+        if self.password is None:
+            self.password = ''
+
         self.mumble = Mumble(self.server, self.username,
                              password=self.password, port=self.port,
                              keyfile=self.keyfile, certfile=self.certfile,
-                             reconnect=True)
+                             reconnect=True, debug=pymumble_debug)
+
+        logger.debug(f"pymumble: using certfile {self.certfile}")
 
         self.mumble.callbacks.set_callback(CONNECTED, self.on_connected)
         self.mumble.callbacks.set_callback(DISCONNECTED, self.on_disconnected)
+        self.mumble.callbacks.set_callback(PERMISSIONDENIED, self.on_permission_denied)
 
         self.mumble.set_application_string("RadioChannel")
 
         logger.debug(f"Mumble channel connecting -> \"{self.username}\"@{self.server}:{self.port} ...")
 
+        # Mumble(threading.Thread)
         self.mumble.start()
 
         # Run is_ready in an executor to prevent blocking
+        # this doesn't make sense though as there are times we are note truly connecting?
         await asyncio.get_event_loop().run_in_executor(None, self.mumble.is_ready)
+
+        # print(f"mumble.connected = {self.mumble.connected}")
+
+        # 2025-01-03 attempt to fix hangs
+        # print(f"mumble.channels = {self.mumble.channels}")
+
+        # if self.channel is None:
+        #     logger.info(f"setting channel to '{self.channel}'")
 
         # warning - could be blocking here
         if self.channel:
@@ -146,7 +169,10 @@ class MumbleChannel:
         logger.info(f"Mumble connected: '{self.username}'@{self.server}:{self.port}")
 
     def on_disconnected(self):
-        logger.info(f"Mumble disconnected: '{self.username}'@{self.server}:{self.port}")
+        logger.warning(f"Mumble disconnected: '{self.username}'@{self.server}:{self.port}")
+
+    def on_permission_denied(self):
+        logger.error(f"Mumble PERMISSION DENIED")
 
     # def sound_received(self, user, soundchunk):
     #     pass  # Handle received sound

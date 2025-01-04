@@ -34,7 +34,7 @@ class SdrDeviceConfig:
     sample_rate: Optional[int] = None
     mode: Optional[str] = "multichannel"
 
-
+# this was to put a channel into its own channel?
 @dataclass
 class MumbleChannelConfig:
     enabled: bool = field(default=True)
@@ -68,6 +68,8 @@ class RadioChannelConfig:
 class MumbleConfig:
     remote_host: str
     remote_port: int
+    sanitize_usernames: Optional[bool] = False
+    password: Optional[str] = None
     default_channel: Optional[str] = None
 
 

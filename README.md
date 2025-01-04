@@ -97,7 +97,7 @@ channels:
 
 ## RTLSDR-Airband Channel Listeners
 
-RTLSDR-Airband supports output via UDP packets. The output format is an 8,000 byte datagram with 32-bit float samples (2,000 samples) at 16,000 samples/sec. Each datagram contains 125 msec of audio. The datagrams appear to always be 8,000 bytes, with the final datagram being padded with 0x00 bytes.
+We configure RTLSDR-Airband to output via UDP packets. The output format is an 8000 bytes datagram with 32-bit float samples (2,000 samples) at 16,000 samples/sec. Each datagram contains 125 msec of audio. The datagrams appear to always be 8000 bytes, with the final datagram being padded with 0x00 bytes.
 
 RTLSDR-Airband falls short in a few ways:
 
@@ -108,3 +108,35 @@ RTLSDR-Airband falls short in a few ways:
 
 We make use of the well-designed FFT channelizer and CTCSS detection.
 
+
+
+# Dependencies
+
+## Pymumble_py3
+
+https://github.com/azlux/pymumble/tree/pymumble_py3
+
+### Problems with pymumble
+
+- Project is abandoned (2024-05-14) ([source](https://github.com/azlux/pymumble/commit/a560e6013dfbccb3666ce8756e1ca6b790bf05c8))
+- Does not work with Python >= 3.12 (SSL Errors)
+- Does not support UDP
+
+
+## Developmment
+
+### Remote / Embedded Development
+
+In the case of aediting a codebase that is mounted remotely (ie. sshfs, etc) and you desire IDE type hinting or code completion - it is recommended to create a local Python VENV environment for the purpose of code completion, etc.
+
+```
+cd {this-project-dir}
+
+# check version
+python --version
+
+python -m venv /some/local/path
+ln -s /some/local/path local-venv/
+
+source ./local-venv/bin/activate
+```

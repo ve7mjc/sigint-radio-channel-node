@@ -8,6 +8,7 @@ from .literals import (
     SAMPLE_SECS_PER_FRAME
 )
 from .mumble.channel import MumbleChannel
+from .mumble import sanitize_username
 from app.config import RadioChannelConfig
 # from app.radio.channel import RadioChannel, RadioChannelSession, Frame, StreamLogger
 
@@ -206,6 +207,8 @@ class RadioChannelProcessor:
         # self.stream_logger_raw = self.datalogger.add_stream("raw")
 
     def add_mumble_output(self, remote_host: str, remote_port: int,
+                          sanitize_usernames: Optional[bool] = False,
+                          password: Optional[str] = None,
                           certs_store: Optional[str] = None, **kwargs):
         if self.id is None:
             logger.error("channel does not have a valid id!")
@@ -214,8 +217,20 @@ class RadioChannelProcessor:
         passed_args['cert_cn'] = self.id
         if "channel" in kwargs:
             passed_args['channel'] = kwargs.get('channel')
-        mumble_channel = MumbleChannel(remote_host, remote_port, self.label,
-                                       certs_store=certs_store, **passed_args)
+
+        username = self.label
+
+        # default mumble server forbids many different characters
+        if sanitize_usernames:
+            logger.info("sanitizing username!!")
+            username = sanitize_username(username)
+
+        logger.info(f"adding MumbleChannel({remote_host},{remote_port},{username})")
+        mumble_channel = MumbleChannel(
+                remote_host, remote_port, username,
+                password=password,
+                certs_store=certs_store, **passed_args
+            )
         self.mumble_outputs.append(mumble_channel)
 
     def set_label(self, value: str):

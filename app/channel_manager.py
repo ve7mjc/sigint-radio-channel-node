@@ -79,16 +79,16 @@ class RadioChannelManager:
                 join_channel = self.config.mumble.default_channel
                 if channel.config.mumble and channel.config.mumble.channel:
                     join_channel = channel.config.mumble.channel
-                if join_channel is None:
-                    logger.warning("mumble channel not specified, cannot join!")
-                else:
-                    certs_store = os.path.join(self.config.cache_path, "certs")
-                    channel.add_mumble_output(
-                        self.config.mumble.remote_host,
-                        self.config.mumble.remote_port,
-                        channel=join_channel,
-                        certs_store=certs_store
-                    )
+                logger.info(f"mumble channel '{join_channel}'")
+                certs_store = os.path.join(self.config.cache_path, "certs")
+                channel.add_mumble_output(
+                    self.config.mumble.remote_host,
+                    self.config.mumble.remote_port,
+                    password=self.config.mumble.password,
+                    sanitize_usernames=self.config.mumble.sanitize_usernames,
+                    channel=join_channel,
+                    certs_store=certs_store
+                )
 
             self.channels.append(channel)
 
