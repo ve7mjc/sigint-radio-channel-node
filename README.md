@@ -6,7 +6,7 @@ Facilitate simultaneous acquisition, processing, storage, and distribution of tw
 
 User defines stream sources (SDR device(s) for now) and the radio channels. The channel manager will produce an RTLSDR-Airband configuration file, subprocess an rtl_airband binary with provided configuration, and then configure requisite number of UDP channels needed to match RTLSDR-Airband.
 
-Each channel "gates" the stream with either CSQ/CTCSS per rtl_airband, applies multiple audio filters, writes the wave data to disk, while simultaneously upsampling the streams and passing them to a Mumble server with each channel being a "user".
+Each channel "gates" the stream with either CSQ/CTCSS per rtl_airband, applies multiple audio filters, writes the audio recording to disk as pcm wave, while simultaneously upsampling the streams and passing them to a Mumble server with each channel being a "user".
 
 ## Features
 
@@ -14,7 +14,7 @@ Each channel "gates" the stream with either CSQ/CTCSS per rtl_airband, applies m
   * Permit global, device, and channel specific overrides in the natural format of rtl_airband
 * Subprocess/wrap the rtl_airband process with generated configuration file. Waits for rtl_airband to become "ready" and also monitors for premature exit/exception.
 * Apply filter chains (notch, low-pass, high-pass, etc) to audio streams
-* Write timestamped voice traffic to disk (wav)
+* Write timestamped voice traffic to disk (pcm wav)
 * Redirect voice channels to Mumble in realtime
 * Ignore nuissance radio clicks/kerchunks from writing to disk (minimum ptt duration)
 
@@ -27,11 +27,11 @@ Each channel "gates" the stream with either CSQ/CTCSS per rtl_airband, applies m
 
 ### Test Development Build
 
- ./setup-dev.sh
+`./setup-dev`
 
 This will configure a Python venv (Virtual Environment) and obtain all of the required third-party Python modules
 
- ./run-dev.sh <config_file.yaml>
+`./run-dev <config.yaml>`
 
 This will start the application with the supplied configuration file
 
@@ -142,7 +142,7 @@ https://github.com/azlux/pymumble/tree/pymumble_py3
 
 ### Remote / Embedded Development
 
-In the case of aediting a codebase that is mounted remotely (ie. sshfs, etc) and you desire IDE type hinting or code completion - it is recommended to create a local Python VENV environment for the purpose of code completion, etc.
+In the case of editing a codebase that is mounted remotely (ie. sshfs, etc) and you desire IDE type hinting or code completion - it is recommended to create a local Python VENV environment for the purpose of code completion, etc.
 
 ```
 cd {this-project-dir}
