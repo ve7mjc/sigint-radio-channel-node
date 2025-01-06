@@ -37,25 +37,38 @@ This will start the application with the supplied configuration file
 
 ## Configuration
 
+There may be valid configuration settings which are not covered here.
+
 ### Devices
 
-- `type`: `rtlsdr_airband.(rtlsdr|soapysdr)`
+- `type`: `rtlsdr_airband.(rtlsdr|soapysdr)` - instruct RTLSDR-Airband to use RTL-SDR or SoapySDR interface
 - `serial` (optional): string to pass to hardware layer for device selection
 - `index` (optional): integer to pass to hardware layer for device selection
 - `center_freq`: Optional; center frequency to tune SDR to; will be automatically calculated if omitted
 - `gain`: passed to rtl_airband
 
+### Mumble
+
+Configuration Section: `mumble:` (Optional)
+
+- `remote_host`:  my.mumblehost.com
+- `remote_port`: 3500
+- `password`: (Optional) password to supply to Mumble (the auth username will be the LABEL (below))
+- `sanitize_usernames`: `(true|false(defaut)) Labels (usernames) with spaces and other characters will error on connection to some Mumble servers. Set to true to sanitize labels/usernames to be compliant.
+- `default_channel` (Optional) Voice-Chat-Channel to join for each radio channel. Omit to join root.
+
 ### Channels
 
 - `id` (optional): provide an id for this channel which can be referenced elsewhere. Recommended.
-
-- `freq`: frequency of channel in MHz
+- `freq`: frequency of channel in MHz (ie '144.520')
 - `label`: string description of channel; used by Mumble, logging, etc
 - `designator`: string emission designator (FCC/IC type); examples:
   - `6K00A3E` AM (Double Side-band) - VHF Air Band
   - `11K0F3E` FM Narrow (2.5 KHz) - Commercial Land Mobile Radio, Public Safety
   - `16K0F3E` FM Wide (5.0 KHz) - Marine VHF, Amateur Radio FM VHF
 - `ctcss` (optional): `float` CTCSS frequency which will then squelch by rtl_airband and also notch filtered out
+- `rtlsdr_airband_overrides` (optional): 'list[str]` list of strings permits injecting of RTLSDR-Airband configuration directives.
+
 
 ### Example Config
 
@@ -83,6 +96,8 @@ channels:
     freq: 118.700
     label: Vancouver Tower (South)
     designator: 6K00A3E
+    rtlsdr_airband_overrides:
+     - "squelch_threshold = -50;"
 
   - id: cyvr-tower-north
     freq: 119.550
