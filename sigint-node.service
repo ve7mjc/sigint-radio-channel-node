@@ -1,0 +1,17 @@
+[Unit]
+Description=SIGINT Radio Channel Node
+#After=network.target
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=sdr
+Group=sdr
+Type=forking
+WorkingDirectory=/opt/sigint-radio-channel-node/
+ExecStart=/usr/bin/tmux new-session -d -s sigint-node '/opt/sigint-radio-channel-node/run-dev'
+ExecStop=/usr/bin/tmux kill-session -t sigint-node
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
