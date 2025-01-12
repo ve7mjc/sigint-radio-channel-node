@@ -17,5 +17,15 @@ https://hub.docker.com/r/phlak/mumble
 
 ## PyMumble (Client Library)
 
-Project: https://github.com/azlux/pymumble
-API Docs: https://github.com/azlux/pymumble/blob/pymumble_py3/API.md
+- *Warning*: `pymumble` has a number of deficiencies and is **DEPRECATED** (2024-12)
+
+- Project: https://github.com/azlux/pymumble
+- API Docs: https://github.com/azlux/pymumble/blob/pymumble_py3/API.md
+
+### Key Problems
+
+- TCP audio streams only!
+  - this was the case with the QRadioLink project ~ 2016 also - and suspect it is due to a different encryption schema
+  - The TCP audio streams lean on the TLS wrapper contexts over basic sockets
+
+
