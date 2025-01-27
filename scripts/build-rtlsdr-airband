@@ -1,0 +1,86 @@
+#!/bin/bash
+#
+# Build RTLSDR-Airband software
+#
+# - clone project repository
+# - install necessary system packages
+# - compile
+#
+
+RTLSDR_AIRBAND_REPO="https://github.com/charlie-foxtrot/RTLSDR-Airband.git"
+RTLSDR_PLATFORM="native"
+INSTALL_FFTW3=false
+
+REQUIRED_PACKAGES=(
+    git
+    pkg-config
+    libconfig++-dev
+    libmp3lame-dev
+    libshout-dev
+    librtlsdr-dev
+)
+
+##
+## ---
+##
+
+base_path="$(dirname "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")"
+
+install_packages() {
+
+    if [ "$RTLSDR_PLATFORM" = "native" ]; then
+        echo " - RTLSDR-Airband platform is 'native'; adding 'libfftw3-dev' package to required"
+        INSTALL_FFTW3=true
+    fi
+
+
+    if $INSTALL_FFTW3; then
+        REQUIRED_PACKAGES+=("libfftw3-dev")
+    fi
+
+    missing_packages=()
+    for pkg in "${packages[@]}"; do
+        if ! dpkg -l | grep -qw "$pkg"; then
+            missing_packages+=("$pkg")
+        fi
+    done
+
+    # Install missing packages
+    if [ ${#missing_packages[@]} -ne 0 ]; then
+        echo "Installing required packages: ${missing_packages[*]}"
+        sudo apt-get update
+        sudo apt-get install -y "${missing_packages[@]}"
+    else
+       echo " - Package requirements met"
+    fi
+}
+
+clone_repo() {
+    local repo_path="$base_path/ext/RTLSDR-Airband"
+    if [[ ! -d "$repo_path" ]]; then
+        echo " - Cloning RTLSDR-Airband from '$RTLSDR_AIRBAND_REPO'\n"
+        git clone $RTLSDR_AIRBAND_REPO "$repo_path"
+    else
+        echo " - RTLSDR-Airband repository already cloned"
+    fi
+
+    # checkout main - pull changes, etc
+    echo -e ""
+    (cd $repo_path && git checkout v5.0.0 && git pull)
+    (mkdir -p $repo_path/build && cd $repo_path/build)
+}
+
+
+build_rtlsdr-airband() {
+    local repo_path="$base_path/ext/RTLSDR-Airband"
+    (cd $repo_path/build && cmake -DPLATFORM=$RTLSDR_PLATFORM -DCMAKE_BUILD_TYPE=Release -DPULSEAUDIO=OFF -DRTLSDR=ON -DNFM=ON -DMIRISDR=OFF -DSOAPYSDR=ON ..)
+    (cd $repo_path/build && make -j `nproc`)
+    (cd $repo_path/build && sudo make install)
+}
+
+#
+## Main
+#
+
+install_packages
+clone_repo
